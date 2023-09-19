@@ -1,16 +1,17 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+require('dotenv').config()
 const port = process.env.PORT || 5000;
 
-//middleware
+// middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json())
 
-app.get('/', (req,res) =>{
-    res.send('music is Dancing')
+app.get('/',(req,res) => {
+    res.send("summer camp starting...")
 })
 
-app.listen(port, () => {
-    console.log(`music is dancing on port ${port}`)
+app.listen(port,()=> {
+    console.log(`summer camp starting in port ${port}`)
 })
