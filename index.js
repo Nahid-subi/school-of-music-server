@@ -3,7 +3,7 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config()
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // middleware
 app.use(cors());
@@ -30,22 +30,33 @@ async function run() {
     const classesCollection = client.db("summerDb").collection("classes")
     const cartCollection = client.db("summerDb").collection("carts")
 
-    app.get('/reviews',async(req,res) =>{
-        const result = await reviewsCollection.find().toArray();
-        res.send(result);
+    app.get('/reviews', async (req, res) => {
+      const result = await reviewsCollection.find().toArray();
+      res.send(result);
     })
-    app.get('/classes',async(req,res) =>{
-        const result = await classesCollection.find().toArray();
-        res.send(result);
+    app.get('/classes', async (req, res) => {
+      const result = await classesCollection.find().toArray();
+      res.send(result);
     })
 
     //cart collection
+    app.get('/carts', async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        res.send([]);
+      }
+      const query = { email: email };
+      const result = await cartCollection.find(query).toArray();
+      res.send(result);
+    })
     app.post('/carts', async (req, res) => {
       const item = req.body;
       const result = await cartCollection.insertOne(item);
       res.send(result);
     });
-    
+
+  
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -56,10 +67,10 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.get('/',(req,res) => {
-    res.send("summer camp starting...")
+app.get('/', (req, res) => {
+  res.send("summer camp starting...")
 })
 
-app.listen(port,()=> {
-    console.log(`summer camp starting in port ${port}`)
+app.listen(port, () => {
+  console.log(`summer camp starting in port ${port}`)
 })
