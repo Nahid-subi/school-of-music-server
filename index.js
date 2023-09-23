@@ -26,10 +26,25 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
+    const usersCollection = client.db("summerDb").collection("users")
     const reviewsCollection = client.db("summerDb").collection("reviews")
     const classesCollection = client.db("summerDb").collection("classes")
     const cartCollection = client.db("summerDb").collection("carts")
 
+    //user 
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email }
+      const existingUser = await usersCollection.findOne(query);
+      console.log(existingUser)
+      if (existingUser) {
+        return res.send({ message: 'user already exists' })
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result)
+    })
+
+    //reviews 
     app.get('/reviews', async (req, res) => {
       const result = await reviewsCollection.find().toArray();
       res.send(result);
