@@ -157,7 +157,7 @@ async function run() {
       const approvedClasses = await classesCollection.find(filter).toArray();
       res.send(approvedClasses);
     });
-    
+
 
     app.post('/classes', async (req, res) => {
       const newItem = req.body;
@@ -188,6 +188,19 @@ async function run() {
       const result = await classesCollection.updateOne(filter, updateDoc);
       res.send(result)
     })
+    
+    app.patch('/classes/feedback/:id', async (req, res) => {
+      const { feedback } = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          feedback: feedback
+        },
+      };
+      const result = await classesCollection.updateOne(filter, updateDoc)
+      res.send(result)
+    });
 
     //cart collection
     app.get('/carts', verifyJWT, async (req, res) => {
