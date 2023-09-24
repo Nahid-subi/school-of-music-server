@@ -152,18 +152,37 @@ async function run() {
       res.send(result);
     })
 
+    app.get('/classes/approved', async (req, res) => {
+      const filter = { status: 'approved' };
+      const approvedClasses = await classesCollection.find(filter).toArray();
+      res.send(approvedClasses);
+    });
+    
+
     app.post('/classes', async (req, res) => {
       const newItem = req.body;
       const result = await classesCollection.insertOne(newItem)
       res.send(result);
     })
 
-    app.patch('/classes/:id', async (req, res) => {
+    app.patch('/classes/approved/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
           status: 'approved'
+        },
+      };
+      const result = await classesCollection.updateOne(filter, updateDoc);
+      res.send(result)
+    })
+
+    app.patch('/classes/denied/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: 'denied'
         },
       };
       const result = await classesCollection.updateOne(filter, updateDoc);
