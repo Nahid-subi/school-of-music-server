@@ -49,7 +49,7 @@ async function run() {
     const classesCollection = client.db("summerDb").collection("classes")
     const cartCollection = client.db("summerDb").collection("carts")
 
-    //jwt
+    //jwt--------------------
 
     app.post('/jwt', (req, res) => {
       const user = req.body;
@@ -67,11 +67,17 @@ async function run() {
       next();
     }
 
-    //user 
+    //user ----------------------------------------
     app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result)
     })
+
+    app.get('/instructor', async (req, res) => {
+      const filter = { role: 'instructor' };
+      const approvedClasses = await usersCollection.find(filter).toArray();
+      res.send(approvedClasses);
+    });
 
     app.get('/users/admin/:email', verifyJWT, async (req, res) => {
       const email = req.params.email;
@@ -140,13 +146,13 @@ async function run() {
       res.send(result)
     })
 
-    //reviews 
+    //reviews ------------------------------------------
     app.get('/reviews', async (req, res) => {
       const result = await reviewsCollection.find().toArray();
       res.send(result);
     })
 
-    //classes
+    //classes---------------------------------------------------
     app.get('/classes', async (req, res) => {
       const result = await classesCollection.find().toArray();
       res.send(result);
@@ -158,6 +164,20 @@ async function run() {
       res.send(approvedClasses);
     });
 
+
+    app.get('/classes/instructor/:email', async (req, res) => {
+      const email = req.params.email;
+    
+      try {
+        const query = { instructorEmail: email }; // Filter classes by instructor's email
+        const result = await classesCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: true, message: 'Internal server error' });
+      }
+    });
+    
 
     app.post('/classes', async (req, res) => {
       const newItem = req.body;
@@ -188,7 +208,7 @@ async function run() {
       const result = await classesCollection.updateOne(filter, updateDoc);
       res.send(result)
     })
-    
+
     app.patch('/classes/feedback/:id', async (req, res) => {
       const { feedback } = req.body;
       const id = req.params.id;
@@ -202,7 +222,7 @@ async function run() {
       res.send(result)
     });
 
-    //cart collection
+    //cart collection------------------------------------
     app.get('/carts', verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (!email) {
@@ -217,6 +237,7 @@ async function run() {
       const result = await cartCollection.find(query).toArray();
       res.send(result);
     })
+
     app.post('/carts', async (req, res) => {
       const item = req.body;
       const result = await cartCollection.insertOne(item);
