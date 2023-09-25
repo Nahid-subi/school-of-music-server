@@ -5,6 +5,7 @@ require('dotenv').config()
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 // middleware
 app.use(cors());
 app.use(express.json())
@@ -48,6 +49,7 @@ async function run() {
     const reviewsCollection = client.db("summerDb").collection("reviews")
     const classesCollection = client.db("summerDb").collection("classes")
     const cartCollection = client.db("summerDb").collection("carts")
+    const paymentCollection = client.db("summerDb").collection("payment")
 
     //jwt--------------------
 
@@ -165,7 +167,7 @@ async function run() {
     });
 
 
-    app.get('/classes/instructor/:email', async (req, res) => {
+    app.get('/classes/instructor/:email', verifyJWT,async (req, res) => {
       const email = req.params.email;
     
       try {
@@ -250,6 +252,22 @@ async function run() {
       const result = await cartCollection.deleteOne(query)
       res.send(result)
     })
+    //payment--------------------------------------------------------------
+    app.post('/create-payment-intent',verifyJWT,async(req,res) =>{
+      const {price} = req.body;
+      const amount = price*100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount:amount,
+        currency:'usd',
+        payment_method_types: ['card']
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    })
+
+ 
+    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
