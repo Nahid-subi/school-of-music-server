@@ -167,9 +167,9 @@ async function run() {
     });
 
 
-    app.get('/classes/instructor/:email', verifyJWT,async (req, res) => {
+    app.get('/classes/instructor/:email', verifyJWT, async (req, res) => {
       const email = req.params.email;
-    
+
       try {
         const query = { instructorEmail: email }; // Filter classes by instructor's email
         const result = await classesCollection.find(query).toArray();
@@ -179,7 +179,7 @@ async function run() {
         res.status(500).send({ error: true, message: 'Internal server error' });
       }
     });
-    
+
 
     app.post('/classes', async (req, res) => {
       const newItem = req.body;
@@ -253,12 +253,12 @@ async function run() {
       res.send(result)
     })
     //payment--------------------------------------------------------------
-    app.post('/create-payment-intent',verifyJWT,async(req,res) =>{
-      const {price} = req.body;
-      const amount = price*100;
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100;
       const paymentIntent = await stripe.paymentIntents.create({
-        amount:amount,
-        currency:'usd',
+        amount: amount,
+        currency: 'usd',
         payment_method_types: ['card']
       });
       res.send({
@@ -266,7 +266,52 @@ async function run() {
       })
     })
 
- 
+  
+    
+    app.post('/payments', verifyJWT, async (req, res) => {
+      try {
+        const payment = req.body;
+    
+        // Step 1: Insert payment information
+        const insertResult = await paymentCollection.insertOne(payment);
+    
+        // Step 2: Delete items from the cart
+        const cartQuery = { _id: { $in: payment.cartId.map(id => new ObjectId(id)) } };
+        const deleteResult = await cartCollection.deleteMany(cartQuery);
+    
+        // Step 3: Update class availability
+        const classQuery = { _id: { $in: payment.classIds.map(id => new ObjectId(id)) } };
+        const classesToUpdate = await classesCollection.find(classQuery).toArray();
+    
+        const uniqueClassIds = {};
+        for (const id of payment.classIds) {
+          if (uniqueClassIds[id]) {
+            uniqueClassIds[id]++;
+          } else {
+            uniqueClassIds[id] = 1;
+          }
+        }
+    
+        for (const id in uniqueClassIds) {
+          const cls = classesToUpdate.find(c => c._id.toString() === id);
+          if (cls) {
+            const quantity = uniqueClassIds[id];
+            const updatedAvailableSeats = cls.availableSeats - quantity;
+            const updatedEnrolled = cls.enrolled ? cls.enrolled + quantity : quantity;
+    
+            await classesCollection.updateOne(
+              { _id: cls._id },
+              { $set: { availableSeats: updatedAvailableSeats, enrolled: updatedEnrolled } }
+            );
+          }
+        }
+    
+        res.send({ insertResult, deleteResult });
+      } catch (error) {
+        // Handle errors
+        res.status(500).send(error.message);
+      }
+    });
     
 
     // Send a ping to confirm a successful connection
