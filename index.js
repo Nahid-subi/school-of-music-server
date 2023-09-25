@@ -266,23 +266,23 @@ async function run() {
       })
     })
 
-  
-    
+
+
     app.post('/payments', verifyJWT, async (req, res) => {
       try {
         const payment = req.body;
-    
+
         // Step 1: Insert payment information
         const insertResult = await paymentCollection.insertOne(payment);
-    
+
         // Step 2: Delete items from the cart
         const cartQuery = { _id: { $in: payment.cartId.map(id => new ObjectId(id)) } };
         const deleteResult = await cartCollection.deleteMany(cartQuery);
-    
+
         // Step 3: Update class availability
         const classQuery = { _id: { $in: payment.classIds.map(id => new ObjectId(id)) } };
         const classesToUpdate = await classesCollection.find(classQuery).toArray();
-    
+
         const uniqueClassIds = {};
         for (const id of payment.classIds) {
           if (uniqueClassIds[id]) {
@@ -291,28 +291,40 @@ async function run() {
             uniqueClassIds[id] = 1;
           }
         }
-    
+
         for (const id in uniqueClassIds) {
           const cls = classesToUpdate.find(c => c._id.toString() === id);
           if (cls) {
             const quantity = uniqueClassIds[id];
             const updatedAvailableSeats = cls.availableSeats - quantity;
             const updatedEnrolled = cls.enrolled ? cls.enrolled + quantity : quantity;
-    
+
             await classesCollection.updateOne(
               { _id: cls._id },
               { $set: { availableSeats: updatedAvailableSeats, enrolled: updatedEnrolled } }
             );
           }
         }
-    
+
         res.send({ insertResult, deleteResult });
       } catch (error) {
         // Handle errors
         res.status(500).send(error.message);
       }
     });
-    
+
+    app.get('/payment/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      try {
+        const query = { email: email }; // Filter payments by email
+        const result = await paymentCollection.find(query).sort({ date: -1 }).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: true, message: 'Internal server error' });
+      }
+    });
+      
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
